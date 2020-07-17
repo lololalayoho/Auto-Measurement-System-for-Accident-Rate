@@ -29,7 +29,7 @@ video_classification = []
 for i in range(10):
     video_classification.append(0)
 
-form_class = uic.loadUiType("accident_gui2.ui")[0]
+form_class = uic.loadUiType("accident_gui.ui")[0]
 class MyWindow(QDialog, form_class):
     def __init__(self):
         super(MyWindow, self).__init__()
@@ -74,7 +74,7 @@ class MyWindow(QDialog, form_class):
         self.mask.setPixmap(crashpixmap)
         self.mask.update()
 
-        carareacnt = int(0)
+        maskCrash = False
         crashcar = [[]for i in range(2)]
         crashcarnum = [0,0]
         CRASH = True
@@ -129,44 +129,37 @@ class MyWindow(QDialog, form_class):
             clip.pop(0)
             return (frame)
 
-        def crashdetect(fframe, areacar):
+        def crash_detect(fframe):
             from visualize_cv2 import modelhello,display_instances, class_names
             # add mask to frame
             results = modelhello.detect([fframe], verbose=0)
-            if len(results)==1 and first==True:
+            if len(results) == 1 and first == True:
                 return 0
             r = results[0]
             carframe = display_instances(
                 fframe, r['rois'], r['masks'], r['class_ids'], class_names, r['scores']
             )
-            image_gray= cv2.cvtColor(carframe,cv2.COLOR_BGR2GRAY)
+            image_gray = cv2.cvtColor(carframe,cv2.COLOR_BGR2GRAY)
             bb,contours = cv2.findContours(image_gray,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
             ret, thr2 = cv2.threshold(image_gray,255,255,cv2.THRESH_BINARY)
 
+            
             for cnt in bb:
                 ellipse = cv2.fitEllipse(cnt)
                 cv2.ellipse(image_gray,ellipse,(255,255,255),-1)
-                '''
-                rect = cv2.minAreaRect(cnt)
-                box = cv2.boxPoints(rect)
-                box = np.int0(box)
-                cv2.drawContours(image_gray,[box],0,(255,255,255),-1)
-                '''
             nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(image_gray)
             image_gray = cv2.resize(image_gray,(400,250))
             
-            #cv2.imshow(" ", image_gray)
             h, w = image_gray.shape
             qImg = QImage(image_gray.data, w, h, QImage.Format_Indexed8)
             pixmap = QPixmap(qImg)
             QApplication.processEvents()
             self.mask.setPixmap(pixmap)
             self.show()
-            print(nlabels)
             if nlabels == 2:
-                return -1
+                return True
             else:
-                return nlabels
+                return False
 
 
         # Definition of the parameters
@@ -181,7 +174,6 @@ class MyWindow(QDialog, form_class):
         metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
         tracker = Tracker(metric)
 
-        writeVideo_flag = True 
         if video_image=='video':
             video = []
             video_capture = cv2.VideoCapture(video_stream)
@@ -191,12 +183,6 @@ class MyWindow(QDialog, form_class):
             crash = [False for i in range(200)]
             w = int(video_capture.get(3))
             h = int(video_capture.get(4))
-            if writeVideo_flag:
-                # Define the codec and create VideoWriter object
-                fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-                out = cv2.VideoWriter('output.avi', fourcc, 15, (w, h))
-                list_file = open('detection.txt', 'w')
-                frame_index = -1 
         
             fps = 0.0
         
@@ -221,17 +207,14 @@ class MyWindow(QDialog, form_class):
                         frame = multi_detecion(video,frame)
                     t1 = time.time()
             
-                   # image = Image.fromarray(frame)
                     image = Image.fromarray(frame[...,::-1]) #bgr to rgb
            
                     boxs = yolo.detect_image(image)
-                   # print("box_num",len(boxs))
                     features = encoder(frame,boxs)
         
-                    # score to 1.0 here).
                     detections = [Detection(bbox, 1.0, feature) for bbox, feature in zip(boxs, features)]
                     if(first):
-                        crashdetect(frame[1:10,1:10], 0)
+                        crash_detect(frame[1:10,1:10])
                         first = False
 
 
@@ -263,35 +246,13 @@ class MyWindow(QDialog, form_class):
                             exx[track.track_id] = curx
                             exy[track.track_id] = cury
             
-                        dx = curx-exx[track.track_id]
-                        dy = cury-exy[track.track_id]
-                        '''
-                        if dx == 0:
-                            angle = 0
-                        else:
-                            angle = float(math.atan(dy/dx))
-                        
-                        exd[track.track_id][2] = exd[track.track_id][1]
-                        exd[track.track_id][1] = exd[track.track_id][0]
-                        exd[track.track_id][0] = angle
-
-                        angle = np.mean(exd[track.track_id])
-                        
-                        #rRect = cv2.RotatedRect(cv2.P0oint2f(curx, cury),cv2.Size2f(x2-x1, y2-y1), angle)
-                        rotateRect = np.array([(int((x1 - curx) * math.cos(angle) - (y1 - cury)*math.sin(angle) + curx), int((x1-curx)*math.sin(angle) + (y1 - cury)*math.cos(angle) + cury)), (int((x2-curx)*math.cos(angle) - (y1 - cury)*math.sin(angle) + curx), int((x2-curx)*math.sin(angle) + (y1 - cury)*math.cos(angle) + cury)), (int((x2-curx)*math.cos(angle) - (y2 - cury)*math.sin(angle) + curx), int((x2-curx)*math.sin(angle) + (y2 - cury)*math.cos(angle) + cury)), (int((x1-curx)*math.cos(angle) - (y2 - cury)*math.sin(angle) + curx),  int((x1-curx)*math.sin(angle) + (y2 - cury)*math.cos(angle) + cury))])
-                        for i in range(4):
-                            cv2.line(frame, tuple(rotateRect[i]), tuple(rotateRect[(i+1)%4]), (255,255,255), 2)
-                        '''
-                        dx = abs(dx)
-                        dy = abs(dy)
+                        dx = abs(curx-exx[track.track_id])
+                        dy = abs(cury-exy[track.track_id])
                         exx[track.track_id] = curx
                         exy[track.track_id] = cury
                         if not crash[track.track_id]:
                             car[track.track_id].append((round(curx/(w/320),1),round(cury/(h/240),1),round(dx/(w/320),1),round(dy/(h/240),1)))
-                        #print(track.track_id,car[track.track_id])
-                        #print("#########################")
                         cararea[track.track_id]=(x1,y1,x2,y2)
-                        #print(track.track_id,cararea[track.track_id][0])
                         cv2.rectangle(frame, (x1, y1), (x2, y2),(255,0,35), 2)
                     resizeframe = cv2.resize(frame,(640,480)) 
                     self.show_videoo(resizeframe)
@@ -305,36 +266,12 @@ class MyWindow(QDialog, form_class):
                                         maxx = max(cararea[i][2], cararea[j][2])+25
                                         miny = min(cararea[i][1], cararea[j][1])-25
                                         maxy = max(cararea[i][3], cararea[j][3])+25
-                                        carareacnt = crashdetect(framecopy[miny:maxy,minx:maxx], carareacnt)
-                                        if carareacnt == -1:
+                                        maskCrash = crash_detect(framecopy[miny:maxy,minx:maxx])
+                                        if maskCrash:
                                             crash[i] = crash[j] = True;
                                             CRASH = False
                                             cv2.imwrite("car%s.jpg"%(i),frame[cararea[i][1]:cararea[i][3],cararea[i][0]:cararea[i][2]])
                                             cv2.imwrite("car%s.jpg"%(j),frame[cararea[j][1]:cararea[j][3],cararea[j][0]:cararea[j][2]])
-
-
-    #                                    cv2.imshow("car%s"%(i),framecopy[cararea[i][1]:cararea[i][3],cararea[i][0]:cararea[i][2]])
-    #                                   cv2.imshow("car%s"%(j),framecopy[cararea[j][1]:cararea[j][3],cararea[j][0]:cararea[j][2]])
-        
-                        ''' 
-                        for det in detections:
-                            bbox = det.to_tlbr()
-    #                    cv2.rectangle(frame,(int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])),(255,0,0), 2)
-                        '''
-            
-                    if writeVideo_flag:
-                        # save a frame
-                        #out.write(frame)
-                        frame_index = frame_index + 1
-                        #list_file.write(str(frame_index)+' ')
-                        #list_file.write(str(int(:curframe))+' ')
-                        if len(boxs) != 0:
-                            for i in range(0,len(boxs)):
-                                list_file.write(str((boxs[i][0]+boxs[i][2])/2) + ' '+str((boxs[i][1]+boxs[i][3])/2) + ' '+str(boxs[i][2]) + ' '+str(boxs[i][3]) + ' ')
-                        list_file.write('\n')
-            
-                    fps  = ( fps + (1./(time.time()-t1)) ) / 2
-                    #print("fps= %f"%(fps))
             
                     # Press Q to stop!
                     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -346,18 +283,10 @@ class MyWindow(QDialog, form_class):
             for i in range(cnt+1):
                 if i is not 0 and crash[i]:
                      crashcar[carnum] = car[i]
-                     '''
-                     print(i)
-                     for a in crashcar[carnum]:
-                         print("x좌표 : "+ str(a[0]) + ", y좌표 : "+ str(a[1]) + ", x 변화량 : " + str(a[2]) + ", y 변화량 : " + str(a[3]))
-                     '''
                      crashcarnum[carnum] = i
                      carnum = carnum+1
 
             video_capture.release()
-            if writeVideo_flag:
-                out.release()
-                list_file.close()
             cv2.destroyAllWindows()
 
             crash_result = divide(video_classification,crashcar[0],crashcar[1],crashcarnum[0],crashcarnum[1])

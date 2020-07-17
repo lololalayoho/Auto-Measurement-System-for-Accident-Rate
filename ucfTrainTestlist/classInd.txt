@@ -1,0 +1,10 @@
+0 T_road
+1 Four_road
+2 Reverse
+3 Hard_road
+4 Stop_and_GO
+5 Stop_accident
+6 ParkingLot
+7 Driving_accident
+8 Not_road
+9 Change_road
