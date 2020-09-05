@@ -32,6 +32,6 @@ python gui.py
 
 ## Paper & 설명 URL
 
-[교통사고 과실비율 자동측정 시스템_최진우_이유노 논문](https://github.com/lololalayoho/Auto-Measurement-System-for-Accident-Rate/blob/master/Deep%20Neural%20Network%EB%A5%BC%20%EC%9D%B4%EC%9A%A9%ED%95%9C%20%EA%B5%90%ED%86%B5%EC%82%AC%EA%B3%A0%20%EA%B3%BC%EC%8B%A4%EB%B9%84%EC%9C%A8%20%EC%9E%90%EB%8F%99%EC%B8%A1%EC%A0%95%20%EC%8B%9C%EC%8A%A4%ED%85%9C%20(1).pdf)
+[2020 대한전자공학회 하계종합학술대회 교통사고 과실비율 자동측정 시스템_최진우_이유노 논문](https://github.com/lololalayoho/Auto-Measurement-System-for-Accident-Rate/blob/master/Deep%20Neural%20Network%EB%A5%BC%20%EC%9D%B4%EC%9A%A9%ED%95%9C%20%EA%B5%90%ED%86%B5%EC%82%AC%EA%B3%A0%20%EA%B3%BC%EC%8B%A4%EB%B9%84%EC%9C%A8%20%EC%9E%90%EB%8F%99%EC%B8%A1%EC%A0%95%20%EC%8B%9C%EC%8A%A4%ED%85%9C%20(1).pdf)
 
 #### 프로젝트 설명 url : https://www.youtube.com/watch?v=dVQ79Bnkgn4&t=569s
